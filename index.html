@@ -91,12 +91,15 @@
       .user-actions button:last-child {
         margin-right: 0;
       }
+      .hidden {
+        display: none;
+      }
     </style>
   </head>
 
   <body>
     <h1>Booking Appointment App</h1>
-    <form onsubmit="saveToLocalStorage(event)" id="my-form">
+    <form id="my-form">
       <label for="username">Username</label><br />
       <input
         type="text"
@@ -121,46 +124,45 @@
         required
         placeholder="Enter your phone number"
       /><br />
-      <button>Submit</button><br />
+      <input type="hidden" name="userid" id="userid" /><br />
+      <button id="btncreateUser" onclick="createUser(event)">Submit</button>
+      <br />
+      <button id="btnupdateUser" class="hidden" onclick="updateuser(event)">
+        Update
+      </button>
     </form>
     <ul id="users"></ul>
     <script>
-      function saveToLocalStorage(event) {
+      function createUser(event) {
         event.preventDefault();
-        const username = event.target.username.value;
-        const email = event.target.email.value;
-        const phone = event.target.phone.value;
+        const username = event.target.form.username.value;
+        const email = event.target.form.email.value;
+        const phone_number = event.target.form.phone.value;
 
         const obj = {
           username,
           email,
-          phone,
+          phone_number,
         };
-        debugger;
-        //save to db
-
         fetch("/api/users", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify(obj)
-            })
-            .then(response => {
-                if (response.ok) {
-                    alert("User created successfully!");
-                } else {
-                    alert("Failed to create user.");
-                }
-            })
-            .catch(error => {
-                console.error("Error:", error);
-                alert("An error occurred while creating the user.");
-            });
-
-
-        localStorage.setItem(obj.email, JSON.stringify(obj));
-        showNewUserOnScreen(obj);
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(obj),
+        })
+          .then((response) => {
+            if (response.ok) {
+              alert("User created successfully!");
+              getAllUsers();
+            } else {
+              alert("Failed to create user.");
+            }
+          })
+          .catch((error) => {
+            console.error("Error:", error);
+            alert("An error occurred while creating the user.");
+          });
       }
 
       function showNewUserOnScreen(user) {
@@ -168,54 +170,109 @@
         document.getElementById("email").value = "";
         document.getElementById("phone").value = "";
 
-        if (localStorage.getItem(user.email) !== null) {
-          removeUserFromScreen(user.email);
-        }
-
         const parentNode = document.getElementById("users");
         const childHTML = `<li id= ${user.email}> ${user.username} -${user.email}
-                     <button onclick= deleteUser('${user.email}')>Delete User</button>
-                     <button onclick= editUserDetails('${user.email}','${user.username}','${user.phone}')>Edit</button>
+                     <button onclick= deleteUser('${user.id}')>Delete User</button>
+                     <button onclick= editUserDetails('${user.email}','${user.username}','${user.phone_number}','${user.id}')>Edit</button>
                      </li>`;
         parentNode.innerHTML = parentNode.innerHTML + childHTML;
       }
       window.addEventListener("DOMContentLoaded", () => {
-        const localStorageObj = localStorage;
-        const localstoragekeys = Object.keys(localStorageObj);
-
-        for (var i = 0; i < localstoragekeys.length; i++) {
-          const key = localstoragekeys[i];
-          const userDetailsString = localStorageObj[key];
-          const userDetailsObj = JSON.parse(userDetailsString);
-          showNewUserOnScreen(userDetailsObj);
-
-        }
+        getAllUsers();
       });
 
+      //get all users
+      function getAllUsers() {
+        fetch("/api/users")
+          .then((response) => {
+            if (!response.ok) {
+              throw new Error("Network response was not ok");
+            }
+            return response.json();
+          })
+          .then((data) => {
+            var data = JSON.stringify(data, null, 2);
+            var datalist = JSON.parse(data);
+            const parentNode = document.getElementById("users");
+            parentNode.innerHTML = "";
+            datalist.forEach((element) => {
+              showNewUserOnScreen(element);
+            });
+            // Process the response data
+          })
+          .catch((error) => {
+            console.error("Error:", error);
+            alert("An error occurred while making the GET request.");
+          });
+      }
+
       //Delete User
-      function deleteUser(emailId) {
-        localStorage.removeItem(emailId);
-        removeUserFromScreen(emailId);
+      function deleteUser(ID) {
+        fetch(`/api/users/${ID}`, {
+          method: "DELETE",
+        })
+          .then((response) => {
+            if (response.ok) {
+              alert("User deleted successfully!");
+              getAllUsers();
+            } else {
+              alert("Failed to delete user.");
+            }
+          })
+          .catch((error) => {
+            console.error("Error:", error);
+            alert("An error occurred while deleting the user.");
+          });
       }
-
-      //Delete user from screen
-      function removeUserFromScreen(emailId) {
-        const parentNode = document.getElementById("users");
-        const childNodeToDelete = document.getElementById(emailId);
-        if (childNodeToDelete) {
-          parentNode.removeChild(childNodeToDelete);
-        }
-      }
-
-      //Edit user
-      function editUserDetails(email, username, phone) {
+      function editUserDetails(email, username, phone, id) {
         document.getElementById("username").value = username;
         document.getElementById("email").value = email;
         document.getElementById("phone").value = phone;
-
-        deleteUser(email);
+        document.getElementById("userid").value = id;
+        const removeclass = document.getElementById("btnupdateUser");
+        removeclass.classList.remove("hidden");
+        const addclass = document.getElementById("btncreateUser");
+        addclass.classList.add("hidden");
       }
-    
+      function updateuser(event) {
+        debugger;
+        event.preventDefault();
+        const username = event.target.form.username.value;
+        const email = event.target.form.email.value;
+        const phone_number = event.target.form.phone.value;
+        const ID = event.target.form.userid.value;
+        const updatedUser = {
+          username,
+          email,
+          phone_number,
+        };
+
+        fetch(`/api/users/${ID}`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(updatedUser),
+        })
+          .then((response) => {
+            if (!response.ok) {
+              throw new Error("Network response was not ok");
+            }
+            return response.json();
+          })
+          .then((data) => {
+            alert("User updated successfully!");
+            getAllUsers();
+            const removeclass = document.getElementById("btncreateUser");
+            removeclass.classList.remove("hidden");
+            const addclass = document.getElementById("btnupdateUser");
+            addclass.classList.add("hidden");
+          })
+          .catch((error) => {
+            console.error("Error:", error); // Log the error message for debugging
+            alert("An error occurred while making the PUT request.");
+          });
+      }
     </script>
   </body>
 </html>

@@ -2,10 +2,10 @@
 const mysql = require('mysql2/promise');
 
 const pool = mysql.createPool({
-  host: 'DESKTOP-0GEJIF9', // Replace with your MySQL host
-  user: 'root@localhost', // Replace with your MySQL user
+  host: 'localhost', // Replace with your MySQL host
+  user: 'root', // Replace with your MySQL user
   password: 'Common@123', // Replace with your MySQL password
-  database: 'node_complete', // Use the name of the database you created
+  database: 'node-complete', // Use the name of the database you created
   connectionLimit: 10,
 });
 

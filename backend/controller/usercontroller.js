@@ -44,3 +44,18 @@ exports.deleteUser = (req, res, next) => {
       res.status(500).json({ error: 'An error occurred while deleting the user' });
     });
 };
+
+exports.updateUser = (req, res, next) => {
+  const { username, email, phone_number } = req.body;
+  const userid = req.params.id;
+  console.log(username, email, phone_number, userid);
+  debugger;
+  pool.execute('UPDATE users SET username = ?, email = ?, phone_number = ? WHERE id = ?',
+  [username, email, phone_number, userid]).then((result) => {
+      res.status(200).json({ message: 'User updated successfully' });
+    })
+    .catch((error) => {
+      console.error('Error:', error);
+      res.status(500).json({ error: 'An error occurred while updating the user' });
+    });
+};
